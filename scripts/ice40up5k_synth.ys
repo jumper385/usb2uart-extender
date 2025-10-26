@@ -4,10 +4,28 @@ plugin -i /usr/local/share/yosys/plugins/ghdl.so
 # start synthesis into yosys intermediate representation
 # in this case, ghdl holds the top entity. Adjust as required
 read_verilog \
-	verilog/and2.v \
-	verilog/or2.v \
+	verilog/usbfs_core/usbfs_bitlevel.v \
+	verilog/usbfs_core/usbfs_core_top.v \
+	verilog/usbfs_core/usbfs_debug_monitor.v \
+	verilog/usbfs_core/usbfs_debug_uart_tx.v \
+	verilog/usbfs_core/usbfs_packet_rx.v \
+	verilog/usbfs_core/usbfs_packet_tx.v \
+	verilog/usbfs_core/usbfs_transaction.v \
+	verilog/usb_class/usb_audio_top.v \
+	verilog/usb_class/usb_camera_top.v \
+	verilog/usb_class/usb_disk_top.v \
+	verilog/usb_class/usb_keyboard_top.v \
+	verilog/usb_class/usb_serial2_top.v \
+	verilog/usb_class/usb_serial_top.v
 
 ghdl --std=08 -fsynopsys -frelaxed-rules \
+	vhdl/uart/uart.vhd \
+	vhdl/uart/uart_clk_div.vhd \
+	vhdl/uart/uart_debouncer.vhd \
+	vhdl/uart/uart_parity.vhd \
+	vhdl/uart/uart_rx.vhd \
+	vhdl/uart/uart_tx.vhd \
+	vhdl/clk_60_gen.vhdl \
 	vhdl/top.vhd \
 	-e top;
 

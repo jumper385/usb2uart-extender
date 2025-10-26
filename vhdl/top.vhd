@@ -3,49 +3,154 @@ use ieee.std_logic_1164.all;
 
 entity top is
 	port (
-		a_i : in std_logic;
-		b_i : in std_logic;
-		c_i : in std_logic;
-		d_o : out std_logic
+		rst_n_i : in std_logic;
+		clk_100_i : in std_logic;
+		clk_60_i : in std_logic;
+
+		uart_rx_i : in std_logic;
+		uart_tx_o : out std_logic;
+
+		usb_main_dp : inout std_logic;
+		usb_main_dn : inout std_logic;
+		usb_main_ls : out std_logic;
+		usb_main_host : out std_logic;
+
+		led_r_o : out std_logic;
+		dbg_1_o : out std_logic
 	);
 end top;
 
 architecture rtl of top is
-	component and2 
-		port (
-			a : in std_logic;
-			b : in std_logic;
-			y : out std_logic
-		);
-	end component;
 
-	component or2 
-		port (
-			a : in std_logic;
-			b : in std_logic;
-			y : out std_logic
-		);
-	end component;
+	  component usb_serial_top is
+    generic (
+      DEBUG : string := "FALSE"
+    );
+    port (
+      rstn          : in    std_logic;
+      clk           : in    std_logic;
 
-	signal and2_o : std_logic;
-	signal or2_o : std_logic;
+      -- USB pins/control
+      usb_dp_pull   : out   std_logic;
+      usb_dp        : inout std_logic;
+      usb_dn        : inout std_logic;
+
+      -- status / reset out
+      usb_rstn      : out   std_logic;
+
+      -- CDC RX (host -> device)
+      recv_data     : out   std_logic_vector(7 downto 0);
+      recv_valid    : out   std_logic;
+
+      -- CDC TX (device -> host)
+      send_data     : in    std_logic_vector(7 downto 0);
+      send_valid    : in    std_logic;
+      send_ready    : out   std_logic;
+
+      -- debug (optional)
+      debug_en      : out   std_logic;
+      debug_data    : out   std_logic_vector(7 downto 0);
+      debug_uart_tx : out   std_logic
+    );
+  end component;
+
+	component UART is
+		generic (
+			CLK_FREQ     : integer := 25_000_000;
+			BAUD_RATE : INTEGER := 115200;
+			PARITY_BIT : STRING := "none";
+			USE_DEBOUNCER : BOOLEAN := True
+		);
+		port (
+			CLK : in STD_LOGIC;
+			RST : in STD_LOGIC;
+			UART_TXD : out STD_LOGIC;
+			UART_RXD : in STD_LOGIC;
+			DIN : in STD_LOGIC_VECTOR(7 downto 0);
+			DIN_VLD : in STD_LOGIC;
+			DIN_RDY : out STD_LOGIC;
+			DOUT : out STD_LOGIC_VECTOR(7 downto 0);
+			DOUT_VLD : out STD_LOGIC;
+			FRAME_ERROR : out STD_LOGIC;
+			PARITY_ERROR : out STD_LOGIC
+		);
+	end component UART;
+
+  signal usb_dp_pull_s : std_logic;
+  signal usb_rstn_s    : std_logic;
+
+	signal uart_din_s : std_logic_vector(7 downto 0);
+	signal uart_dout_s : std_logic_vector(7 downto 0);
+  signal uart_rx_valid_s  : std_logic;
+	signal uart_tx_valid_s : std_logic;
+	signal uart_rx_rdy_s : std_logic;
+	signal clk_25_s : std_logic;
+	signal counter : integer;
 
 begin
 
-	and_inst : and2
+  u_usb_serial : usb_serial_top
+    port map (
+      rstn          => rst_n_i,         -- active-low
+      clk           => clk_60_i,        -- 60 MHz
+
+      usb_dp_pull   => usb_dp_pull_s,   -- drive external pull-up circuit if used
+      usb_dp        => usb_main_dp,
+      usb_dn        => usb_main_dn,
+
+      usb_rstn      => usb_rstn_s,      -- 1=connected, 0=disconnected
+
+      recv_data     => uart_din_s,
+      recv_valid    => uart_rx_valid_s,
+
+      send_data     => uart_dout_s,
+      send_valid    => uart_tx_valid_s,
+      send_ready    => open,            -- ignore backpressure like the example
+
+      debug_en      => open,
+      debug_data    => open,
+      debug_uart_tx => uart_tx_o        -- routed to your UART TX pin in PCF
+    );
+
+	process (clk_100_i, rst_n_i)
+	begin
+
+		if (rst_n_i = '0') then
+				counter <= 0;
+		else
+			if rising_edge(clk_100_i) then
+				if counter < 4 then
+					clk_25_s <= clk_25_s;
+					counter <= counter + 1;
+				else
+					clk_25_s <= not clk_25_s;
+					counter <= 0;
+				end if;
+			end if;
+		end if;
+		
+	end process;
+
+	uart_inst: component UART
 	port map (
-		a => a_i, 
-		b => b_i,
-		y => and2_o
+		CLK => clk_25_s,
+		RST => not rst_n_i,
+
+		UART_TXD => uart_tx_o,
+		UART_RXD => uart_rx_i,
+
+		DIN => uart_din_s,
+		DIN_VLD => uart_rx_valid_s,
+		DIN_RDY => open,
+
+		DOUT => uart_dout_s,
+		DOUT_VLD => open,
+		FRAME_ERROR => open,
+		PARITY_ERROR => open 
 	);
 
-	or_inst : or2
-	port map (
-		a => and2_o,
-		b => c_i,
-		y => or2_o
-	);
-	
-	d_o <= or2_o;
+	usb_main_ls <= '0'	;
+	usb_main_host <= '1';
 
+	dbg_1_o <= uart_rx_valid_s;
 end architecture;
