@@ -137,7 +137,7 @@ begin
 	usb_main_ls <= '0'	;
 	usb_main_host <= '1';
 
-	led_g_o <= not uart_rx_i;
+	led_g_o <= uart_rx_i;
 	align_tx_o <= uart_rx_i;
 	align_rx_o <= uart_tx_o;
 

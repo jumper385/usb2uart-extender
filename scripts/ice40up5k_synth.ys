@@ -26,6 +26,8 @@ ghdl --std=08 -fsynopsys -frelaxed-rules \
 	vhdl/uart/uart_rx.vhd \
 	vhdl/uart/uart_tx.vhd \
 	vhdl/clk_60_gen.vhdl \
+	vhdl/ec_codec/hamming_encoder.vhdl \
+	vhdl/ec_codec/hamming_decoder.vhdl \
 	vhdl/top.vhd \
 	-e top;
 
