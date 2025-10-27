@@ -15,8 +15,13 @@ entity top is
 		usb_main_ls : out std_logic;
 		usb_main_host : out std_logic;
 
+		led_g_o : out std_logic;
+		led_b_o : out std_logic;
 		led_r_o : out std_logic;
-		dbg_1_o : out std_logic
+
+		align_tx_o : out std_logic;
+		align_rx_o : out std_logic;
+		lt_sel_mode_i : in std_logic -- used to invert rx signal input
 	);
 end top;
 
@@ -56,7 +61,7 @@ architecture rtl of top is
 
 	component UART is
 		generic (
-			CLK_FREQ     : integer := 25_000_000;
+			CLK_FREQ     : integer := 60_000_000;
 			BAUD_RATE : INTEGER := 115200;
 			PARITY_BIT : STRING := "none";
 			USE_DEBOUNCER : BOOLEAN := True
@@ -86,8 +91,26 @@ architecture rtl of top is
 	signal uart_rx_rdy_s : std_logic;
 	signal clk_25_s : std_logic;
 	signal counter : integer;
+	signal uart_tx_rdy: std_logic;
+
+	signal tctr : integer;
+	signal uart_rx_s : std_logic;
 
 begin
+
+	proc_uart_dec: process(uart_rx_i, lt_sel_mode_i)
+	begin
+		-- invert uart signal if in LT Attachement Mode
+		if (lt_sel_mode_i = '1') then
+			uart_rx_s <= not uart_rx_i;
+			led_b_o <= '0';
+			led_r_o <= '1';
+		else
+			uart_rx_s <= uart_rx_i;
+			led_b_o <= '1';
+			led_r_o <= '0';
+		end if;
+	end process;
 
   u_usb_serial : usb_serial_top
     port map (
@@ -109,42 +132,23 @@ begin
 
       debug_en      => open,
       debug_data    => open,
-      debug_uart_tx => uart_tx_o        -- routed to your UART TX pin in PCF
+      debug_uart_tx => open        -- routed to your UART TX pin in PCF
     );
-
-	process (clk_100_i, rst_n_i)
-	begin
-
-		if (rst_n_i = '0') then
-				counter <= 0;
-		else
-			if rising_edge(clk_100_i) then
-				if counter < 4 then
-					clk_25_s <= clk_25_s;
-					counter <= counter + 1;
-				else
-					clk_25_s <= not clk_25_s;
-					counter <= 0;
-				end if;
-			end if;
-		end if;
-		
-	end process;
 
 	uart_inst: component UART
 	port map (
-		CLK => clk_25_s,
+		CLK => clk_60_i,
 		RST => not rst_n_i,
 
 		UART_TXD => uart_tx_o,
-		UART_RXD => uart_rx_i,
+		UART_RXD => uart_rx_s, -- use the processed rx signal;
 
 		DIN => uart_din_s,
 		DIN_VLD => uart_rx_valid_s,
-		DIN_RDY => open,
+		DIN_RDY => uart_tx_rdy,
 
 		DOUT => uart_dout_s,
-		DOUT_VLD => open,
+		DOUT_VLD => uart_tx_valid_s,
 		FRAME_ERROR => open,
 		PARITY_ERROR => open 
 	);
@@ -152,5 +156,9 @@ begin
 	usb_main_ls <= '0'	;
 	usb_main_host <= '1';
 
-	dbg_1_o <= uart_rx_valid_s;
+	led_g_o <= uart_rx_i;
+
+	align_tx_o <= uart_rx_s;
+	align_rx_o <= uart_tx_o;
+
 end architecture;
