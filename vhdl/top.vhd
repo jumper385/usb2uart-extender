@@ -16,8 +16,11 @@ entity top is
 		usb_main_host : out std_logic;
 
 		led_g_o : out std_logic;
+		led_b_o : out std_logic;
+
 		align_tx_o : out std_logic;
-		align_rx_o : out std_logic
+		align_rx_o : out std_logic;
+		lt_sel_mode_i : in std_logic -- used to invert rx signal input
 	);
 end top;
 
@@ -90,8 +93,21 @@ architecture rtl of top is
 	signal uart_tx_rdy: std_logic;
 
 	signal tctr : integer;
+	signal uart_rx_s : std_logic;
 
 begin
+
+	proc_uart_dec: process(uart_rx_i, lt_sel_mode_i)
+	begin
+		-- invert uart signal if in LT Attachement Mode
+		if (lt_sel_mode_i = '1') then
+			uart_rx_s <= not uart_rx_i;
+			led_b_o <= '1';
+		else
+			uart_rx_s <= uart_rx_i;
+			led_b_o <= '0';
+		end if;
+	end process;
 
   u_usb_serial : usb_serial_top
     port map (
