@@ -17,6 +17,7 @@ entity top is
 
 		led_g_o : out std_logic;
 		led_b_o : out std_logic;
+		led_r_o : out std_logic;
 
 		align_tx_o : out std_logic;
 		align_rx_o : out std_logic;
@@ -102,10 +103,12 @@ begin
 		-- invert uart signal if in LT Attachement Mode
 		if (lt_sel_mode_i = '1') then
 			uart_rx_s <= not uart_rx_i;
-			led_b_o <= '1';
+			led_b_o <= '0';
+			led_r_o <= '1';
 		else
 			uart_rx_s <= uart_rx_i;
-			led_b_o <= '0';
+			led_b_o <= '1';
+			led_r_o <= '0';
 		end if;
 	end process;
 
