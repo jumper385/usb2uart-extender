@@ -154,7 +154,8 @@ begin
 	usb_main_host <= '1';
 
 	led_g_o <= uart_rx_i;
-	align_tx_o <= uart_rx_i;
+
+	align_tx_o <= uart_rx_s;
 	align_rx_o <= uart_tx_o;
 
 end architecture;
