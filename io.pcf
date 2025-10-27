@@ -1,5 +1,9 @@
-set_io uart_rx_i 28
-set_io uart_tx_o 25
+set_io uart_rx_i 12
+set_io uart_tx_o 11
+
+set_io align_rx_o 28
+set_io align_tx_o 25
+
 set_io rst_n_i 20
 set_io clk_100_i 13
 set_io clk_60_i 2
@@ -10,5 +14,6 @@ set_io usb_main_ls 34
 set_io usb_main_host 35
 
 set_io led_r_o 40
+set_io led_g_o 39
 set_io dbg_1_o 11
 set_io dbg_2_o 10
