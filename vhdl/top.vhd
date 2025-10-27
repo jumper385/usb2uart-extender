@@ -138,7 +138,7 @@ begin
 		RST => not rst_n_i,
 
 		UART_TXD => uart_tx_o,
-		UART_RXD => not uart_rx_i,
+		UART_RXD => uart_rx_s, -- use the processed rx signal;
 
 		DIN => uart_din_s,
 		DIN_VLD => uart_rx_valid_s,
